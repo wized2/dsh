@@ -1,7 +1,19 @@
 /*!
  * DeepSeek Tool Shim
- * @version 7.3.0
+ * @version 7.4.0
  * @description run_js tool bridge + draggable status dot + management panel
+ *
+ * 7.4.1:
+ *  - leading icon is a custom terminal glyph (own SVG) instead of trying to clone
+ *    DeepSeek's own chevron; it pulses in place while a tool call runs. The small arrow
+ *    at the end goes back to being purely an expand/collapse control.
+ *
+ * 7.4.0:
+ *  - tagline no longer uses emoji (🔧/⏳); the collapse chevron is now the only status
+ *    icon — it spins while a tool runs and rotates on expand/collapse otherwise, the same
+ *    two jobs DeepSeek's own "Thought for Ns" header uses its chevron for. When that
+ *    native header is present on the page, its actual SVG is cloned so the icon matches
+ *    pixel-for-pixel; otherwise a plain fallback chevron is used
  *
  * 7.3.0:
  *  - sendMessage no longer fades the textarea's opacity with a CSS transition; it hides
@@ -27,7 +39,7 @@
   if (window.top !== window.self) return;
   if (window.__DS_TOOL_SHIM__) { console.log('[shim] already loaded'); return; }
 
-  const VERSION = '7.3.0';
+  const VERSION = '7.4.1';
   const getConvId = () => location.pathname.split('/').filter(Boolean).pop() || 'unknown';
   const CONFIG = Object.assign({
     debug: false,
@@ -118,18 +130,19 @@
       background: var(--dsw-alias-bg-hover, rgba(120,150,180,0.08));
     }
     [data-ds-shim-tagline="1"] .ds-shim-inner {
-      display: flex; align-items: center; gap: 6px; height: 100%;
+      display: flex; align-items: center; gap: 7px; height: 100%;
     }
     [data-ds-shim-tagline="1"] .ds-shim-ico {
-      width: 16px; height: 16px;
+      width: 15px; height: 15px;
       display: inline-flex; align-items: center; justify-content: center;
-      font-size: 13px; opacity: .85; flex-shrink: 0;
+      opacity: .75; flex-shrink: 0;
     }
+    [data-ds-shim-tagline="1"] .ds-shim-ico svg { display: block; width: 100%; height: 100%; }
     [data-ds-shim-tagline="1"][data-ds-shim-running="1"] .ds-shim-ico {
-      animation: dsshim-spin 1s linear infinite;
+      animation: dsshim-pulse-ico 1.2s ease-in-out infinite;
     }
-    @keyframes dsshim-spin { to { transform: rotate(360deg); } }
-    [data-ds-shim-tagline="1"] .ds-shim-txt { font-weight: 400; white-space: nowrap; }
+    @keyframes dsshim-pulse-ico { 0%, 100% { opacity: .35; } 50% { opacity: 1; } }
+    [data-ds-shim-tagline="1"] .ds-shim-txt { font-weight: 400; font-size: 14px; white-space: nowrap; }
     [data-ds-shim-tagline="1"] .ds-shim-chip {
       font-family: ui-monospace,SFMono-Regular,Menlo,monospace;
       font-size: 12px;
@@ -145,6 +158,8 @@
     }
     [data-ds-shim-tagline="1"] .ds-shim-chip::before { content: '→ '; opacity: .5; font-family: system-ui; }
     [data-ds-shim-tagline="1"] .ds-shim-chip.err { color: #f88; background: rgba(240,130,130,0.10); }
+    /* Collapse arrow: expand/collapse only (no longer doubles as a busy spinner —
+       the terminal icon's pulse handles that instead). */
     [data-ds-shim-tagline="1"] .ds-shim-chev {
       width: 14px; height: 14px;
       display: inline-flex; align-items: center; justify-content: center;
@@ -933,7 +948,10 @@
 
   // ============================================================
   // TAGLINE
+  // No emoji/text glyphs. A custom terminal icon identifies "tool call" (it pulses while
+  // running), and a separate small arrow handles expand/collapse.
   // ============================================================
+  const TERMINAL_SVG = '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="2" width="14" height="12" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M4 6.3L6.5 8.8L4 11.3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 11.3H11.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>';
   const CHEV_SVG = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
   function createTagline(preview = '', isError = false, running = false) {
@@ -944,15 +962,14 @@
     const inner = document.createElement('div');
     inner.className = 'ds-shim-inner';
 
-    const ico = document.createElement('div');
+    const ico = document.createElement('span');
     ico.className = 'ds-shim-ico';
-    ico.textContent = running ? '⏳' : '🔧';
+    ico.innerHTML = TERMINAL_SVG;
+    inner.appendChild(ico);
 
     const txt = document.createElement('span');
     txt.className = 'ds-shim-txt';
     txt.textContent = running ? 'Running tool…' : 'Tool used';
-
-    inner.appendChild(ico);
     inner.appendChild(txt);
 
     if (preview) {
@@ -973,7 +990,6 @@
 
   function updateTagline(tagline, preview, isError, running) {
     tagline.toggleAttribute('data-ds-shim-running', !!running);
-    tagline.querySelector('.ds-shim-ico').textContent = running ? '⏳' : '🔧';
     tagline.querySelector('.ds-shim-txt').textContent = running ? 'Running tool…' : 'Tool used';
     let chip = tagline.querySelector('.ds-shim-chip');
     if (preview !== undefined) {

@@ -1,7 +1,14 @@
 /*!
  * DeepSeek Tool Shim
- * @version 7.4.0
+ * @version 7.5.0
  * @description run_js tool bridge + draggable status dot + management panel
+ *
+ * 7.5.0:
+ *  - full re-audit for stray symbols: removed the checkmark from the console load banner
+ *    and the decorative arrow character from the result chip (now a plain "- "). Nothing
+ *    rendered in the UI (tagline, FAB, panel, toasts) uses emoji or pictographic
+ *    characters; the only glyphs are the custom terminal SVG icon and a plain arrow SVG
+ *    used for expand/collapse.
  *
  * 7.4.1:
  *  - leading icon is a custom terminal glyph (own SVG) instead of trying to clone
@@ -9,7 +16,7 @@
  *    at the end goes back to being purely an expand/collapse control.
  *
  * 7.4.0:
- *  - tagline no longer uses emoji (🔧/⏳); the collapse chevron is now the only status
+ *  - tagline no longer uses emoji glyphs; the collapse chevron is now the only status
  *    icon — it spins while a tool runs and rotates on expand/collapse otherwise, the same
  *    two jobs DeepSeek's own "Thought for Ns" header uses its chevron for. When that
  *    native header is present on the page, its actual SVG is cloned so the icon matches
@@ -39,7 +46,7 @@
   if (window.top !== window.self) return;
   if (window.__DS_TOOL_SHIM__) { console.log('[shim] already loaded'); return; }
 
-  const VERSION = '7.4.1';
+  const VERSION = '7.5.0';
   const getConvId = () => location.pathname.split('/').filter(Boolean).pop() || 'unknown';
   const CONFIG = Object.assign({
     debug: false,
@@ -156,7 +163,7 @@
       white-space: nowrap;
       margin-left: 2px;
     }
-    [data-ds-shim-tagline="1"] .ds-shim-chip::before { content: '→ '; opacity: .5; font-family: system-ui; }
+    [data-ds-shim-tagline="1"] .ds-shim-chip::before { content: '- '; opacity: .5; font-family: system-ui; }
     [data-ds-shim-tagline="1"] .ds-shim-chip.err { color: #f88; background: rgba(240,130,130,0.10); }
     /* Collapse arrow: expand/collapse only (no longer doubles as a busy spinner —
        the terminal icon's pulse handles that instead). */
@@ -1209,7 +1216,7 @@
     }
   }
 
-  // Observer: only structural changes (no characterData → quieter)
+  // Observer: only structural changes (no characterData -> quieter)
   const observer = new MutationObserver(() => scheduleTick(false));
   observer.observe(document.body, { childList: true, subtree: true });
 
@@ -1284,6 +1291,6 @@
   };
 
   refreshCounts();
-  console.log(`%c✅ DeepSeek Tool Shim v${VERSION} loaded`, 'color:#0af;font-weight:bold');
+  console.log(`%c[shim] DeepSeek Tool Shim v${VERSION} loaded`, 'color:#0af;font-weight:bold');
   console.log('API: __DS_TOOL_SHIM__.stats() | .inspect() | .showPanel()');
 })();
